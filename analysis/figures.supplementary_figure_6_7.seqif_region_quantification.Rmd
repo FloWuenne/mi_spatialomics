@@ -100,15 +100,26 @@ save_plot(filename = "./plots/supp_figure_X.NONimmune_cells_regions.png",
 ## R3-6 plot - Mono/Macro CCr2+ vs Trem2+/Trem2-
 
 ```{r}
-
 mono_macro  <- immune_cells %>%
   subset(final_cell_type %in% c("Mono / Macros Ccr2+","Macrophages Trem2+","Macrophages Trem2-"))
 
-mono_macro$region_name <- gsub("Endocardial zone","Endocardial infarct zone",mono_macro$region_name)
-mono_macro$region_name <- factor(mono_macro$region_name,
-                                 levels = c("Endocardial infarct zone","Infarct core","Epicardial region","Border zone"))
+ccr2_pos <- mono_macro %>% subset(final_cell_type == "Mono / Macros Ccr2+") %>% select(fov,timepoint,region_name,final_cell_type,count_per_mm2)
+ccr2_neg <- mono_macro %>% subset(final_cell_type != "Mono / Macros Ccr2+")
 
-mono_macro_density <- ggplot(mono_macro,aes(timepoint,count_per_mm2)) +
+ccr2_neg <- ccr2_neg %>%
+  group_by(fov,timepoint,region_name,final_cell_type) %>%
+  summarise(count_per_mm2 = sum(count_per_mm2)) %>%
+  ungroup()
+ccr2_neg$final_cell_type <- "Mono / Macros Ccr2-"
+
+
+mono_macro_proc <- rbind(ccr2_pos,ccr2_neg)
+
+mono_macro_proc$region_name <- gsub("Endocardial zone","Endocardial \ninfarct zone",mono_macro_proc$region_name)
+mono_macro_proc$region_name <- factor(mono_macro_proc$region_name,
+                                 levels = c("Endocardial \ninfarct zone","Infarct core","Epicardial region","Border zone"))
+
+mono_macro_density <- ggplot(mono_macro_proc,aes(timepoint,count_per_mm2)) +
   geom_bar(aes(fill = final_cell_type),color = "black", stat = "summary", fun = "mean", position = position_dodge(width = 0.9)) +
   geom_point(position = position_dodge(width = 0.9),pch =21,
              aes(fill = final_cell_type),color = "black",
